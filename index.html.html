@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safar Travel Express - Goa Tour Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase App & Auth SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrFDUnWj2XDMAKiOJ3ANFMEANqKCb9TT0",
+            authDomain: "invoice-creater-91125.firebaseapp.com",
+            projectId: "invoice-creater-91125",
+            storageBucket: "invoice-creater-91125.firebasestorage.app",
+            messagingSenderId: "146909018300",
+            appId: "1:146909018300:web:1e53d1abe056e1f22078b9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        const AUTHORIZED_EMAIL = "daud.triplookfun@gmail.com";
+
+        window.handleGoogleLogin = function() {
+            signInWithPopup(auth, provider).then((result) => {
+                const user = result.user;
+                if (user.email === AUTHORIZED_EMAIL) {
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app-main-content').classList.remove('hidden');
+                    initializeAppAfterLogin();
+                } else {
+                    alert("Access Denied: Yeh application sirf authorized user ke liye hai!");
+                    signOut(auth);
+                }
+            }).catch((error) => {
+                console.error("Login Error:", error);
+                alert("Login failed: " + error.message);
+            });
+        };
+
+        window.handleLogout = function() {
+            signOut(auth).then(() => {
+                document.getElementById('app-main-content').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+            });
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === AUTHORIZED_EMAIL) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-main-content').classList.remove('hidden');
+                initializeAppAfterLogin();
+            } else {
+                document.getElementById('app-main-content').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+            }
+        });
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Poppins', sans-serif; }
+        .editor-content p { margin-bottom: 0.1rem; }
+        .editor-content ul { list-style-type: disc; margin-left: 1rem; margin-bottom: 0.1rem; }
+        .editor-content ol { list-style-type: decimal; margin-left: 1rem; margin-bottom: 0.1rem; }
+        @media print {
+            @page { size: A4; margin: 0.5in; }
+            body * { visibility: hidden; }
+            #printable-invoice, #printable-invoice * { visibility: visible; }
+            #printable-invoice { position: absolute; left: 0; top: 0; width: 100%; height: auto; margin: 0; padding: 4mm; box-shadow: none !important; border: 3px solid #0f766e !important; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- LOGIN SCREEN (Protected View) -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 text-center space-y-6">
+            <div class="w-16 h-16 bg-teal-800 text-white rounded-2xl mx-auto flex items-center justify-center text-3xl shadow">
+                <i class="fa-solid fa-umbrella-beach"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Safar Travel Express</h1>
+                <p class="text-xs text-slate-500 mt-1">Goa Tour & Invoice Management System</p>
+            </div>
+            <div class="bg-teal-50 p-4 rounded-xl border border-teal-100 text-xs text-teal-800">
+                <i class="fa-solid fa-shield-halved mr-1"></i> Secure Access: Restricted to Authorized Gmail Account only.
+            </div>
+            <button onclick="handleGoogleLogin()" class="w-full bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 px-4 rounded-xl border border-slate-300 shadow-sm transition flex items-center justify-center gap-3 text-sm">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                Sign in with Google
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTENT (Hidden until authenticated) -->
+    <div id="app-main-content" class="hidden flex flex-col min-h-screen">
+        <!-- Top Header Bar -->
+        <header class="bg-teal-800 text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div id="header-logo-container" class="w-14 h-14 bg-white rounded-lg flex items-center justify-center overflow-hidden shadow">
+                        <i class="fa-solid fa-umbrella-beach text-teal-700 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 id="company-display-name" class="text-2xl font-bold tracking-wide">Safar Travel Express</h1>
+                        <p id="company-display-tagline" class="text-xs text-teal-200">Goa Tour Packages & Itinerary Management</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 text-sm bg-teal-900/60 px-4 py-2 rounded-lg border border-teal-700">
+                        <div class="flex items-center gap-2"><i class="fa-solid phone text-teal-300"></i> <span id="company-display-phone">+91 8177911633 / +91 7387960861</span></div>
+                        <span class="text-teal-600">|</span>
+                        <div class="flex items-center gap-2"><i class="fa-solid fa-envelope text-teal-300"></i> <span id="company-display-email">choiceyourtrip@gmail.com</span></div>
+                    </div>
+                    <button onclick="handleLogout()" title="Logout" class="bg-rose-700 hover:bg-rose-800 text-white px-3 py-2 rounded-lg text-sm transition"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="bg-teal-900 border-t border-teal-700">
+                <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto space-x-1 py-2">
+                    <button onclick="switchTab('dashboard')" class="tab-btn px-4 py-2 rounded-lg font-medium text-sm transition bg-teal-700 text-white flex items-center gap-2"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+                    <button onclick="switchTab('packages')" class="tab-btn px-4 py-2 rounded-lg font-medium text-sm transition text-teal-200 hover:bg-teal-800 hover:text-white flex items-center gap-2"><i class="fa-solid fa-suitcase-rolling"></i> Package Master</button>
+                    <button onclick="switchTab('booking')" class="tab-btn px-4 py-2 rounded-lg font-medium text-sm transition text-teal-200 hover:bg-teal-800 hover:text-white flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar"></i> New Booking / Invoice</button>
+                    <button onclick="switchTab('manage')" class="tab-btn px-4 py-2 rounded-lg font-medium text-sm transition text-teal-200 hover:bg-teal-800 hover:text-white flex items-center gap-2"><i class="fa-solid fa-list-check"></i> Manage Bookings</button>
+                    <button onclick="switchTab('settings')" class="tab-btn px-4 py-2 rounded-lg font-medium text-sm transition text-teal-200 hover:bg-teal-800 hover:text-white flex items-center gap-2"><i class="fa-solid fa-gear"></i> Company & Setup</button>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Main Container -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6">
+
+            <!-- 1. DASHBOARD TAB -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-teal-100 text-teal-700 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-receipt"></i></div>
+                        <div><p class="text-sm text-slate-500 font-medium">Total Bookings</p><h3 id="stat-total-bookings" class="text-2xl font-bold text-slate-800">0</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                        <div><p class="text-sm text-slate-500 font-medium">Total Revenue</p><h3 id="stat-total-revenue" class="text-2xl font-bold text-slate-800">₹0</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-wallet"></i></div>
+                        <div><p class="text-sm text-slate-500 font-medium">Advance Collected</p><h3 id="stat-total-advance" class="text-2xl font-bold text-slate-800">₹0</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-rose-100 text-rose-700 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                        <div><p class="text-sm text-slate-500 font-medium">Pending Balance</p><h3 id="stat-total-balance" class="text-2xl font-bold text-slate-800">₹0</h3></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-clock-rotate-left text-teal-600 mr-2"></i>Recent Bookings</h2>
+                        <button onclick="switchTab('booking')" class="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition"><i class="fa-solid fa-plus mr-1"></i> New Booking</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                    <th class="p-3">Booking ID</th>
+                                    <th class="p-3">Customer</th>
+                                    <th class="p-3">Package / Trips</th>
+                                    <th class="p-3">Trip Date</th>
+                                    <th class="p-3">Total (₹)</th>
+                                    <th class="p-3">Balance (₹)</th>
+                                    <th class="p-3 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-bookings-table" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. PACKAGE MASTER TAB -->
+            <section id="tab-packages" class="tab-content hidden space-y-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-suitcase-rolling text-teal-600 mr-2"></i>Goa Package Master</h2>
+                            <p class="text-xs text-slate-500">Create & manage predefined tour packages with pricing and itineraries.</p>
+                        </div>
+                        <button onclick="openPackageModal()" class="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"><i class="fa-solid fa-plus"></i> Create New Package</button>
+                    </div>
+                    <div id="packages-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+            </section>
+
+            <!-- 3. NEW BOOKING / INVOICE TAB -->
+            <section id="tab-booking" class="tab-content hidden space-y-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-file-pen text-teal-600 mr-2"></i><span id="form-mode-title">Create New Goa Tour Booking</span></h2>
+                            <p class="text-xs text-slate-500">Select multiple trips/packages, customize their descriptions, and calculate pricing.</p>
+                        </div>
+                        <button onclick="resetBookingForm()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition"><i class="fa-solid fa-rotate-right mr-1"></i> Reset Form</button>
+                    </div>
+
+                    <form id="booking-form" onsubmit="saveBooking(event)" class="space-y-6">
+                        <input type="hidden" id="edit-booking-id">
+
+                        <!-- Multiple Package Selection Checkboxes -->
+                        <div class="bg-teal-50/60 p-4 rounded-xl border border-teal-100 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <label class="block text-xs font-semibold text-teal-900 uppercase tracking-wider">Select Multiple Trips / Packages</label>
+                                <button type="button" onclick="openPackageModal()" class="text-xs text-teal-700 font-bold hover:underline"><i class="fa-solid fa-plus-circle mr-1"></i>Add New Package</button>
+                            </div>
+                            <div id="booking-packages-checkboxes" class="grid grid-cols-1 md:grid-cols-2 gap-2 bg-white p-3 rounded-lg border border-teal-200 max-h-40 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Dynamic Description Editors Container for Selected Trips -->
+                        <div id="dynamic-editors-container" class="space-y-4"></div>
+
+                        <!-- Customer & Trip Details -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Customer Name</label>
+                                <input type="text" id="cust-name" placeholder="e.g. Rahul Sharma" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Mobile Number</label>
+                                <input type="tel" id="cust-mobile" placeholder="e.g. +91 9876543210" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Handling Person</label>
+                                <select id="handling-staff" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                    <option value="">-- Select Handling Person --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Hotel Name & Category</label>
+                                <input type="text" id="hotel-name" placeholder="e.g. Resort Rio, Baga (4 Star)" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Meal Plan</label>
+                                <select id="meal-plan" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                    <option value="">-- Select Meal Plan --</option>
+                                    <option value="MAP (Breakfast + Dinner)">MAP (Breakfast + Dinner)</option>
+                                    <option value="CP (Breakfast Only)">CP (Breakfast Only)</option>
+                                    <option value="AP (All Meals)">AP (All Meals)</option>
+                                    <option value="Room Only">Room Only</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Meeting / Pickup Point</label>
+                                <input type="text" id="meeting-point" placeholder="e.g. Goa Airport / Thivim Station" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Trip Date</label>
+                                <input type="date" id="trip-date" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Check Out Date</label>
+                                <input type="date" id="checkout-date" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">No. of Adults</label>
+                                <input type="number" id="no-adults" min="0" value="0" oninput="calculateTotal()" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">No. of Child</label>
+                                <input type="number" id="no-child" min="0" value="0" oninput="calculateTotal()" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Costing Setup -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Per Adult Cost (₹)</label>
+                                <input type="number" id="per-adult-cost" min="0" value="0" oninput="calculateTotal()" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Per Child Cost (₹)</label>
+                                <input type="number" id="per-child-cost" min="0" value="0" oninput="calculateTotal()" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Payment Calculation Section -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-teal-50/60 p-4 rounded-xl border border-teal-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-teal-900 uppercase tracking-wider mb-1">Total Payment (₹) - Auto</label>
+                                <input type="number" id="total-payment" readonly class="w-full bg-white border border-teal-300 rounded-lg p-2.5 text-sm font-bold text-teal-800">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Advance Paid (₹)</label>
+                                <input type="number" id="advance-paid" min="0" value="0" oninput="calculateBalance()" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Balance Paid (₹)</label>
+                                <input type="number" id="balance-paid" min="0" value="0" oninput="calculateBalance()" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-teal-900 uppercase tracking-wider mb-1">Balance Amount (₹)</label>
+                                <input type="number" id="balance-amount" readonly class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-bold text-rose-700">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                            <button type="submit" class="bg-teal-700 hover:bg-teal-800 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition flex items-center gap-2 shadow"><i class="fa-solid fa-floppy-disk"></i> Save Booking & Invoice</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 4. MANAGE BOOKINGS TAB -->
+            <section id="tab-manage" class="tab-content hidden space-y-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-list-check text-teal-600 mr-2"></i>All Bookings & Invoices</h2>
+                            <p class="text-xs text-slate-500">View, edit, print A4 invoices, or share bookings via WhatsApp.</p>
+                        </div>
+                        <div class="w-full md:w-72">
+                            <input type="text" id="search-booking-input" oninput="filterBookings()" placeholder="Search by customer, mobile..." class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                    <th class="p-3">ID</th>
+                                    <th class="p-3">Customer</th>
+                                    <th class="p-3">Mobile</th>
+                                    <th class="p-3">Packages / Trips</th>
+                                    <th class="p-3">Trip Date</th>
+                                    <th class="p-3">Total (₹)</th>
+                                    <th class="p-3">Balance (₹)</th>
+                                    <th class="p-3 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-bookings-table" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. COMPANY & SETUP TAB -->
+            <section id="tab-settings" class="tab-content hidden space-y-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-3xl mx-auto space-y-8">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 mb-1"><i class="fa-solid fa-gear text-teal-600 mr-2"></i>Company Settings & Logo</h2>
+                        <p class="text-xs text-slate-500 mb-4">Update company details, logo, stamp/signature, and terms.</p>
+                        
+                        <form onsubmit="saveCompanySettings(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Company Name</label>
+                                <input type="text" id="setting-company-name" required class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Tagline / Subtitle</label>
+                                <input type="text" id="setting-company-tagline" required class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Contact Numbers</label>
+                                    <input type="text" id="setting-company-phone" required class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Email Address</label>
+                                    <input type="email" id="setting-company-email" required class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Company Address</label>
+                                <textarea id="setting-company-address" rows="2" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Invoice Terms & Conditions</label>
+                                <textarea id="setting-company-terms" rows="2" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Company Logo (File)</label>
+                                    <input type="file" id="setting-company-logo-file" accept="image/*" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Stamp & Signature (PNG file)</label>
+                                    <input type="file" id="setting-company-stamp-file" accept="image/*" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm">
+                                </div>
+                            </div>
+                            <div class="pt-2">
+                                <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-medium py-2.5 rounded-lg text-sm transition shadow"><i class="fa-solid fa-floppy-disk mr-1"></i> Save Company Settings</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <hr class="border-slate-200">
+
+                    <!-- Employees / Handling Persons Section -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 mb-1"><i class="fa-solid fa-users text-teal-600 mr-2"></i>Handling Persons (Employees)</h2>
+                        <p class="text-xs text-slate-500 mb-4">Add staff members who handle bookings so their name and contact appear on invoices.</p>
+                        
+                        <form onsubmit="saveEmployee(event)" class="bg-teal-50/50 p-4 rounded-xl border border-teal-100 grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-4">
+                            <input type="hidden" id="edit-emp-id">
+                            <div class="md:col-span-5">
+                                <label class="block text-xs font-semibold text-teal-900 uppercase tracking-wider mb-1">Staff Name</label>
+                                <input type="text" id="emp-name" required placeholder="e.g. Daud Ansari" class="w-full bg-white border border-teal-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div class="md:col-span-5">
+                                <label class="block text-xs font-semibold text-teal-900 uppercase tracking-wider mb-1">Contact Number</label>
+                                <input type="text" id="emp-phone" required placeholder="e.g. +91 8177911633" class="w-full bg-white border border-teal-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                            <div class="md:col-span-2">
+                                <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-medium py-2 px-3 rounded-lg text-sm transition shadow">Add Staff</button>
+                            </div>
+                        </form>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                        <th class="p-2.5">Name</th>
+                                        <th class="p-2.5">Contact Number</th>
+                                        <th class="p-2.5 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employees-table" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="bg-slate-800 text-slate-400 py-6 text-center text-xs mt-auto border-t border-slate-700">
+            <p>&copy; 2026 <span id="footer-company-name">Safar Travel Express</span>. All rights reserved. | Contact: <span id="footer-company-phone">+91 8177911633 / +91 7387960861</span></p>
+        </footer>
+
+        <!-- INVOICE / PRINT MODAL -->
+        <div id="invoice-modal" class="fixed inset-0 bg-slate-900/70 z-50 hidden flex items-center justify-center p-2 overflow-y-auto">
+            <div class="bg-white w-full max-w-3xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+                <div class="bg-teal-800 text-white px-4 py-2.5 flex justify-between items-center no-print">
+                    <h3 class="font-bold text-sm"><i class="fa-solid fa-file-invoice mr-1.5"></i>A4 Booking Invoice</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="printInvoice()" class="bg-white text-teal-800 hover:bg-teal-50 px-3 py-1 rounded-md text-xs font-semibold transition flex items-center gap-1"><i class="fa-solid fa-print"></i> Print / Save PDF</button>
+                        <button onclick="openWhatsAppModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-md text-xs font-semibold transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+                        <button onclick="closeInvoiceModal()" class="text-teal-200 hover:text-white px-2 py-0.5 text-lg font-bold">&times;</button>
+                    </div>
+                </div>
+                
+                <!-- Printable A4 Area -->
+                <div class="p-2 overflow-y-auto bg-slate-100 flex justify-center">
+                    <div id="printable-invoice" class="bg-white w-[210mm] p-5 shadow rounded border-4 border-teal-800 text-slate-800 flex flex-col justify-between text-[9.5px]">
+                        <div>
+                            <!-- Header -->
+                            <div class="flex justify-between items-start border-b border-slate-300 pb-2 mb-2">
+                                <div class="flex items-center gap-2">
+                                    <div id="inv-logo-box" class="w-7 h-7 bg-teal-800 text-white rounded flex items-center justify-center font-bold text-sm overflow-hidden shadow">
+                                        <i class="fa-solid fa-umbrella-beach"></i>
+                                    </div>
+                                    <div>
+                                        <h2 id="inv-company-name" class="text-sm font-bold text-teal-900 leading-tight">Safar Travel Express</h2>
+                                        <p id="inv-company-tagline" class="text-[8px] text-slate-500">Goa Tour Packages & Itinerary Management</p>
+                                        <p id="inv-company-address" class="text-[8px] text-slate-500">Goa, India</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <h1 class="text-xs font-bold text-teal-800 uppercase tracking-widest">BOOKING INVOICE</h1>
+                                    <p class="text-[9px] text-slate-500">ID: <span id="inv-id" class="font-bold text-slate-700">#STE-1001</span> | Date: <span id="inv-date" class="font-bold text-slate-700"></span></p>
+                                </div>
+                            </div>
+
+                            <!-- Customer & Trip Details Side-by-Side Compact Box -->
+                            <div id="inv-meta-grid" class="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded border border-slate-200 mb-2 text-[9.5px]">
+                                <div id="inv-customer-box">
+                                    <h3 class="font-bold text-teal-900 uppercase text-[8px] tracking-wider mb-0.5 border-b border-teal-200 pb-0.5">Customer Details</h3>
+                                    <p id="inv-row-name"><strong>Name:</strong> <span id="inv-cust-name" class="text-slate-800 font-semibold"></span></p>
+                                    <p id="inv-row-mobile"><strong>Mobile:</strong> <span id="inv-cust-mobile" class="text-slate-800"></span></p>
+                                    <p id="inv-row-staff"><strong>Handling Person:</strong> <span id="inv-handling-staff" class="text-slate-800"></span></p>
+                                </div>
+                                <div id="inv-trip-box">
+                                    <h3 class="font-bold text-teal-900 uppercase text-[8px] tracking-wider mb-0.5 border-b border-teal-200 pb-0.5">Trip Details</h3>
+                                    <p id="inv-row-hotel"><strong>Hotel:</strong> <span id="inv-hotel" class="text-slate-800"></span></p>
+                                    <p id="inv-row-meal"><strong>Meal:</strong> <span id="inv-meal" class="text-slate-800"></span></p>
+                                    <p id="inv-row-dates"><strong>Dates:</strong> <span id="inv-trip-dates" class="text-slate-800"></span></p>
+                                    <p id="inv-row-meeting"><strong>Pickup:</strong> <span id="inv-meeting" class="text-slate-800"></span></p>
+                                </div>
+                            </div>
+
+                            <!-- Multiple Package & Itinerary -->
+                            <div id="inv-package-section" class="mb-2">
+                                <h3 class="font-bold text-teal-900 uppercase text-[8px] tracking-wider mb-0.5 border-b border-teal-200 pb-0.5">Package & Itinerary Details</h3>
+                                <div id="inv-packages-container" class="space-y-2"></div>
+                            </div>
+
+                            <!-- Pricing Table & Summary in 2 Columns -->
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-2 mb-2 items-start">
+                                <div id="inv-pricing-section" class="md:col-span-7">
+                                    <h3 class="font-bold text-teal-900 uppercase text-[8px] tracking-wider mb-0.5 border-b border-teal-200 pb-0.5">Cost Breakdown</h3>
+                                    <table class="w-full text-[9px] border-collapse">
+                                        <thead>
+                                            <tr class="bg-teal-900 text-white text-[8px]">
+                                                <th class="p-0.5 text-left">Category</th>
+                                                <th class="p-0.5 text-center">Count</th>
+                                                <th class="p-0.5 text-right">Unit (₹)</th>
+                                                <th class="p-0.5 text-right">Total (₹)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="inv-pricing-tbody" class="divide-y divide-slate-200 border border-slate-200"></tbody>
+                                    </table>
+                                </div>
+                                <div class="md:col-span-5">
+                                    <div class="bg-slate-50 p-1.5 rounded border border-slate-200 space-y-0.5 text-[9px]">
+                                        <div class="flex justify-between font-bold text-slate-800 border-b border-slate-200 pb-0.5">
+                                            <span>Total Payment:</span>
+                                            <span id="inv-total-payment">₹0</span>
+                                        </div>
+                                        <div class="flex justify-between text-emerald-700">
+                                            <span>Advance Paid:</span>
+                                            <span id="inv-advance-paid">₹0</span>
+                                        </div>
+                                        <div class="flex justify-between text-teal-700">
+                                            <span>Balance Paid:</span>
+                                            <span id="inv-balance-paid">₹0</span>
+                                        </div>
+                                        <div class="flex justify-between font-bold text-rose-700 text-[10px] border-t border-slate-200 pt-0.5">
+                                            <span>Balance Amount:</span>
+                                            <span id="inv-balance-amount">₹0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms & Conditions & Stamp/Signature Section -->
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end mb-1">
+                                <div id="inv-terms-section" class="md:col-span-8 bg-slate-50 p-1.5 rounded border border-slate-200 text-[8px] text-slate-600">
+                                    <h3 class="font-bold text-teal-900 uppercase tracking-wider mb-0.5 border-b border-teal-200 pb-0.5">Terms & Conditions</h3>
+                                    <p id="inv-terms-text" class="whitespace-pre-line leading-tight"></p>
+                                </div>
+                                <div id="inv-stamp-box" class="md:col-span-4 text-center hidden">
+                                    <img id="inv-stamp-img" src="" class="max-h-16 mx-auto object-contain mb-0.5">
+                                    <p class="text-[8px] font-bold text-slate-700 border-t border-slate-300 pt-0.5">Authorized Signatory</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="border-t border-slate-300 pt-1 mt-1 flex justify-between items-center text-[8px] text-slate-500">
+                            <p>Thank you for booking with <span id="inv-footer-company">Safar Travel Express</span>!</p>
+                            <p>Contact: <span id="inv-footer-phone">+91 8177911633 / +91 7387960861</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WHATSAPP POPUP MODAL -->
+        <div id="whatsapp-modal" class="fixed inset-0 bg-slate-900/70 z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden p-6 space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                    <h3 class="font-bold text-lg text-emerald-700 flex items-center gap-2"><i class="fa-brands fa-whatsapp text-xl"></i> Share Booking via WhatsApp</h3>
+                    <button onclick="closeWhatsAppModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                </div>
+                <p class="text-xs text-slate-500">Copy the formatted message below and paste it directly into your WhatsApp chat with the client.</p>
+                <textarea id="whatsapp-text-area" rows="10" readonly class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 text-xs font-mono focus:outline-none"></textarea>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="copyWhatsAppText()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-copy"></i> Copy to Clipboard & Open WhatsApp</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PACKAGE MASTER MODAL -->
+        <div id="package-modal" class="fixed inset-0 bg-slate-900/70 z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+            <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden p-6 space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                    <h3 class="font-bold text-lg text-teal-800"><i class="fa-solid fa-suitcase-rolling mr-2"></i><span id="pkg-modal-title">Add New Goa Package</span></h3>
+                    <button onclick="closePackageModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                </div>
+                <form id="package-form" onsubmit="savePackage(event)" class="space-y-4">
+                    <input type="hidden" id="edit-pkg-id">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Package Name</label>
+                        <input type="text" id="modal-pkg-name" placeholder="e.g. 5 Nights / 6 Days Exotic Goa Tour" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Default Per Adult Cost (₹)</label>
+                            <input type="number" id="modal-pkg-adult-cost" min="0" value="0" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Default Per Child Cost (₹)</label>
+                            <input type="number" id="modal-pkg-child-cost" min="0" value="0" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Package Description / Itinerary</label>
+                        <div class="flex flex-wrap gap-1 bg-slate-100 p-2 rounded-t-lg border border-slate-300 border-b-0 text-slate-700">
+                            <button type="button" onclick="formatModalText('bold')" title="Bold" class="p-1.5 hover:bg-slate-200 rounded"><i class="fa-solid fa-bold w-4"></i></button>
+                            <button type="button" onclick="formatModalText('italic')" title="Italic" class="p-1.5 hover:bg-slate-200 rounded"><i class="fa-solid fa-italic w-4"></i></button>
+                            <span class="w-px bg-slate-300 mx-1"></span>
+                            <button type="button" onclick="formatModalText('insertUnorderedList')" title="Bullet List" class="p-1.5 hover:bg-slate-200 rounded"><i class="fa-solid fa-list-ul w-4"></i></button>
+                            <button type="button" onclick="formatModalText('insertOrderedList')" title="Numbered List" class="p-1.5 hover:bg-slate-200 rounded"><i class="fa-solid fa-list-ol w-4"></i></button>
+                        </div>
+                        <div id="modal-pkg-desc-editor" contenteditable="true" class="w-full bg-white border border-slate-300 rounded-b-lg p-3 min-h-[150px] max-h-[250px] overflow-y-auto text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none editor-content"></div>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" onclick="closePackageModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">Cancel</button>
+                        <button type="submit" class="bg-teal-700 hover:bg-teal-800 text-white font-medium px-6 py-2 rounded-lg text-sm transition shadow">Save Package</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript -->
+    <script>
+        let companySettings = JSON.parse(localStorage.getItem('ste_company')) || {
+            name: "Safar Travel Express",
+            tagline: "Goa Tour Packages & Itinerary Management",
+            phone: "+91 8177911633 / +91 7387960861",
+            email: "choiceyourtrip@gmail.com",
+            address: "Goa, India",
+            terms: "1. 50% advance payment required for booking confirmation.\n2. Balance amount must be cleared before or upon arrival.",
+            logo: "",
+            stamp: ""
+        };
+
+        let employees = JSON.parse(localStorage.getItem('ste_employees')) || [
+            { id: "emp-1", name: "Daud Ansari", phone: "+91 8177911633" },
+            { id: "emp-2", name: "NWB Staff", phone: "+91 7387960861" }
+        ];
+
+        let packages = JSON.parse(localStorage.getItem('ste_packages')) || [
+            {
+                id: "pkg-1",
+                name: "05 Nights / 06 Days Luxury Goa Family Tour",
+                adultCost: 18500,
+                childCost: 9500,
+                description: "<ul><li>05 Nights Stay = 06 Days Checkout in 4-Star Resort</li><li>Daily Breakfast & Dinner (MAP Plan)</li></ul>"
+            },
+            {
+                id: "pkg-2",
+                name: "Doodhsagar Waterfall Trip with Jeep Safari",
+                adultCost: 1500,
+                childCost: 1200,
+                description: "<ul><li>Jeep Safari through Mollem National Park</li><li>Spice Plantation Tour</li></ul>"
+            },
+            {
+                id: "pkg-3",
+                name: "Scuba Diving & Watersports at Grande Island",
+                adultCost: 2000,
+                childCost: 1800,
+                description: "<ul><li>Scuba Diving with Photos/Video</li><li>5 Water Sports Activities</li></ul>"
+            }
+        ];
+
+        let bookings = JSON.parse(localStorage.getItem('ste_bookings')) || [
+            { id: "STE-2026-101", packageIds: ["pkg-1"], packageNames: ["05 Nights / 06 Days Luxury Goa Family Tour"], customerName: "Rahul Sharma", mobile: "+91 9876543210", handlingStaff: "Daud Ansari", hotelName: "Resort Rio, Baga", mealPlan: "MAP (Breakfast + Dinner)", meetingPoint: "Goa Airport", tripDate: "2026-04-10", checkoutDate: "2026-04-15", adults: 2, child: 0, adultUnitCost: 18500, childUnitCost: 9500, descriptions: ["<ul><li>05 Nights Stay in 4-Star Resort</li></ul>"], totalPayment: 37000, advancePaid: 15000, balancePaid: 0, balanceAmount: 22000, createdAt: "2026-04-01" },
+            { id: "STE-2026-102", packageIds: ["pkg-2"], packageNames: ["Doodhsagar Waterfall Trip with Jeep Safari"], customerName: "Amit Verma", mobile: "+91 9123456789", handlingStaff: "NWB Staff", hotelName: "Hotel Sea Princess", mealPlan: "CP (Breakfast Only)", meetingPoint: "Candolim", tripDate: "2026-04-12", checkoutDate: "2026-04-13", adults: 3, child: 1, adultUnitCost: 1500, childUnitCost: 1200, descriptions: ["<ul><li>Jeep Safari & Spice Plantation</li></ul>"], totalPayment: 5700, advancePaid: 2000, balancePaid: 0, balanceAmount: 3700, createdAt: "2026-04-02" },
+            { id: "STE-2026-103", packageIds: ["pkg-3"], packageNames: ["Scuba Diving & Watersports at Grande Island"], customerName: "Priya Singh", mobile: "+91 9988776655", handlingStaff: "Daud Ansari", hotelName: "Novotel Goa", mealPlan: "MAP (Breakfast + Dinner)", meetingPoint: "Calangute", tripDate: "2026-04-14", checkoutDate: "2026-04-17", adults: 2, child: 2, adultUnitCost: 2000, childUnitCost: 1800, descriptions: ["<ul><li>Scuba Diving + 5 Watersports</li></ul>"], totalPayment: 7600, advancePaid: 3000, balancePaid: 0, balanceAmount: 4600, createdAt: "2026-04-03" },
+            { id: "STE-2026-104", packageIds: ["pkg-1", "pkg-2"], packageNames: ["05 Nights / 06 Days Luxury Goa Family Tour", "Doodhsagar Waterfall Trip with Jeep Safari"], customerName: "Sanjay Gupta", mobile: "+91 9811223344", handlingStaff: "NWB Staff", hotelName: "Taj Holiday Village", mealPlan: "AP (All Meals)", meetingPoint: "Thivim Station", tripDate: "2026-04-18", checkoutDate: "2026-04-24", adults: 4, child: 0, adultUnitCost: 18500, childUnitCost: 9500, descriptions: ["<ul><li>05 Nights Stay</li></ul>", "<ul><li>Doodhsagar Trip</li></ul>"], totalPayment: 74000, advancePaid: 30000, balancePaid: 0, balanceAmount: 44000, createdAt: "2026-04-04" },
+            { id: "STE-2026-105", packageIds: ["pkg-3"], packageNames: ["Scuba Diving & Watersports at Grande Island"], customerName: "Neha Kapoor", mobile: "+91 9722334455", handlingStaff: "Daud Ansari", hotelName: "W Goa, Vagator", mealPlan: "CP (Breakfast Only)", meetingPoint: "Airport", tripDate: "2026-04-20", checkoutDate: "2026-04-22", adults: 2, child: 0, adultUnitCost: 2000, childUnitCost: 1800, descriptions: ["<ul><li>Scuba Diving</li></ul>"], totalPayment: 4000, advancePaid: 2000, balancePaid: 0, balanceAmount: 2000, createdAt: "2026-04-05" },
+            { id: "STE-2026-106", packageIds: ["pkg-2"], packageNames: ["Doodhsagar Waterfall Trip with Jeep Safari"], customerName: "Vikram Malhotra", mobile: "+91 9633445566", handlingStaff: "NWB Staff", hotelName: "Citrus Hotel", mealPlan: "Room Only", meetingPoint: "Panjim", tripDate: "2026-04-22", checkoutDate: "2026-04-25", adults: 5, child: 2, adultUnitCost: 1500, childUnitCost: 1200, descriptions: ["<ul><li>Doodhsagar Trip</li></ul>"], totalPayment: 9900, advancePaid: 4000, balancePaid: 0, balanceAmount: 5900, createdAt: "2026-04-06" },
+            { id: "STE-2026-107", packageIds: ["pkg-1"], packageNames: ["05 Nights / 06 Days Luxury Goa Family Tour"], customerName: "Ananya Roy", mobile: "+91 9544556677", handlingStaff: "Daud Ansari", hotelName: "Grand Hyatt", mealPlan: "MAP (Breakfast + Dinner)", meetingPoint: "Airport", tripDate: "2026-05-01", checkoutDate: "2026-05-06", adults: 2, child: 1, adultUnitCost: 18500, childUnitCost: 9500, descriptions: ["<ul><li>05 Nights Luxury Tour</li></ul>"], totalPayment: 46500, advancePaid: 20000, balancePaid: 0, balanceAmount: 26500, createdAt: "2026-04-07" },
+            { id: "STE-2026-108", packageIds: ["pkg-2", "pkg-3"], packageNames: ["Doodhsagar Waterfall Trip with Jeep Safari", "Scuba Diving & Watersports at Grande Island"], customerName: "Karan Mehta", mobile: "+91 9455667788", handlingStaff: "NWB Staff", hotelName: "Lemon Tree", mealPlan: "CP (Breakfast Only)", meetingPoint: "Candolim", tripDate: "2026-05-05", checkoutDate: "2026-05-08", adults: 2, child: 0, adultUnitCost: 3500, childUnitCost: 3000, descriptions: ["<ul><li>Doodhsagar</li></ul>", "<ul><li>Scuba</li></ul>"], totalPayment: 7000, advancePaid: 3000, balancePaid: 0, balanceAmount: 4000, createdAt: "2026-04-08" },
+            { id: "STE-2026-109", packageIds: ["pkg-1"], packageNames: ["05 Nights / 06 Days Luxury Goa Family Tour"], customerName: "Deepak Joshi", mobile: "+91 9366778899", handlingStaff: "Daud Ansari", hotelName: "Cidade de Goa", mealPlan: "AP (All Meals)", meetingPoint: "Airport", tripDate: "2026-05-10", checkoutDate: "2026-05-15", adults: 2, child: 2, adultUnitCost: 18500, childUnitCost: 9500, descriptions: ["<ul><li>Family Tour</li></ul>"], totalPayment: 57000, advancePaid: 25000, balancePaid: 0, balanceAmount: 32000, createdAt: "2026-04-09" },
+            { id: "STE-2026-110", packageIds: ["pkg-3"], packageNames: ["Scuba Diving & Watersports at Grande Island"], customerName: "Pooja Sharma", mobile: "+91 9277889900", handlingStaff: "NWB Staff", hotelName: "Hard Rock Hotel", mealPlan: "MAP (Breakfast + Dinner)", meetingPoint: "Calangute", tripDate: "2026-05-12", checkoutDate: "2026-05-15", adults: 4, child: 0, adultUnitCost: 2000, childUnitCost: 1800, descriptions: ["<ul><li>Scuba Diving</li></ul>"], totalPayment: 8000, advancePaid: 4000, balancePaid: 0, balanceAmount: 4000, createdAt: "2026-04-10" }
+        ];
+
+        function initializeAppAfterLogin() {
+            applyCompanySettings();
+            populatePackageCheckboxes();
+            populateHandlingStaffDropdown();
+            renderEmployeesTable();
+            renderPackagesGrid();
+            renderDashboard();
+            renderManageBookings();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-teal-700', 'text-white');
+                btn.classList.add('text-teal-200', 'hover:bg-teal-800', 'hover:text-white');
+            });
+            event.currentTarget.classList.remove('text-teal-200', 'hover:bg-teal-800', 'hover:text-white');
+            event.currentTarget.classList.add('bg-teal-700', 'text-white');
+
+            if(tabId === 'dashboard') renderDashboard();
+            if(tabId === 'packages') renderPackagesGrid();
+            if(tabId === 'manage') renderManageBookings();
+            if(tabId === 'settings') renderEmployeesTable();
+            if(tabId === 'booking') populatePackageCheckboxes();
+        }
+
+        function applyCompanySettings() {
+            document.getElementById('company-display-name').innerText = companySettings.name;
+            document.getElementById('company-display-tagline').innerText = companySettings.tagline;
+            document.getElementById('company-display-phone').innerText = companySettings.phone;
+            document.getElementById('company-display-email').innerText = companySettings.email;
+            document.getElementById('footer-company-name').innerText = companySettings.name;
+            document.getElementById('footer-company-phone').innerText = companySettings.phone;
+
+            const logoContainer = document.getElementById('header-logo-container');
+            if(companySettings.logo) {
+                logoContainer.innerHTML = `<img src="${companySettings.logo}" class="w-full h-full object-cover">`;
+            } else {
+                logoContainer.innerHTML = `<i class="fa-solid fa-umbrella-beach text-teal-700 text-2xl"></i>`;
+            }
+
+            document.getElementById('setting-company-name').value = companySettings.name;
+            document.getElementById('setting-company-tagline').value = companySettings.tagline;
+            document.getElementById('setting-company-phone').value = companySettings.phone;
+            document.getElementById('setting-company-email').value = companySettings.email;
+            document.getElementById('setting-company-address').value = companySettings.address;
+            document.getElementById('setting-company-terms').value = companySettings.terms || "";
+        }
+
+        function saveCompanySettings(e) {
+            e.preventDefault();
+            companySettings.name = document.getElementById('setting-company-name').value;
+            companySettings.tagline = document.getElementById('setting-company-tagline').value;
+            companySettings.phone = document.getElementById('setting-company-phone').value;
+            companySettings.email = document.getElementById('setting-company-email').value;
+            companySettings.address = document.getElementById('setting-company-address').value;
+            companySettings.terms = document.getElementById('setting-company-terms').value;
+
+            const logoInput = document.getElementById('setting-company-logo-file');
+            const stampInput = document.getElementById('setting-company-stamp-file');
+
+            let filesProcessed = 0;
+            let totalFilesToProcess = (logoInput.files && logoInput.files[0] ? 1 : 0) + (stampInput.files && stampInput.files[0] ? 1 : 0);
+
+            if(totalFilesToProcess === 0) {
+                localStorage.setItem('ste_company', JSON.stringify(companySettings));
+                applyCompanySettings();
+                alert("Company settings updated successfully!");
+                return;
+            }
+
+            if(logoInput.files && logoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    companySettings.logo = evt.target.result;
+                    filesProcessed++;
+                    if(filesProcessed === totalFilesToProcess) finalizeSettingsSave();
+                };
+                reader.readAsDataURL(logoInput.files[0]);
+            }
+
+            if(stampInput.files && stampInput.files[0]) {
+                const reader2 = new FileReader();
+                reader2.onload = function(evt) {
+                    companySettings.stamp = evt.target.result;
+                    filesProcessed++;
+                    if(filesProcessed === totalFilesToProcess) finalizeSettingsSave();
+                };
+                reader2.readAsDataURL(stampInput.files[0]);
+            }
+        }
+
+        function finalizeSettingsSave() {
+            localStorage.setItem('ste_company', JSON.stringify(companySettings));
+            applyCompanySettings();
+            alert("Company settings, logo & stamp updated successfully!");
+        }
+
+        function populateHandlingStaffDropdown() {
+            const select = document.getElementById('handling-staff');
+            select.innerHTML = '<option value="">-- Select Handling Person --</option>';
+            employees.forEach(emp => {
+                let opt = document.createElement('option');
+                opt.value = emp.name;
+                opt.textContent = `${emp.name} (${emp.phone})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderEmployeesTable() {
+            const tbody = document.getElementById('employees-table');
+            tbody.innerHTML = '';
+            employees.forEach(emp => {
+                let tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-2.5 font-medium text-slate-800">${emp.name}</td>
+                    <td class="p-2.5 text-slate-600">${emp.phone}</td>
+                    <td class="p-2.5 text-center space-x-2">
+                        <button onclick="deleteEmployee('${emp.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-2.5 py-1 rounded text-xs transition"><i class="fa-solid fa-trash"></i> Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveEmployee(e) {
+            e.preventDefault();
+            let name = document.getElementById('emp-name').value;
+            let phone = document.getElementById('emp-phone').value;
+
+            let newEmp = { id: "emp-" + Date.now(), name, phone };
+            employees.push(newEmp);
+            localStorage.setItem('ste_employees', JSON.stringify(employees));
+
+            document.getElementById('emp-name').value = "";
+            document.getElementById('emp-phone').value = "";
+            renderEmployeesTable();
+            populateHandlingStaffDropdown();
+            alert("Handling person added successfully!");
+        }
+
+        function deleteEmployee(id) {
+            if(confirm("Are you sure you want to delete this staff member?")) {
+                employees = employees.filter(e => e.id !== id);
+                localStorage.setItem('ste_employees', JSON.stringify(employees));
+                renderEmployeesTable();
+                populateHandlingStaffDropdown();
+            }
+        }
+
+        function formatText(command, editorId) {
+            document.execCommand(command, false, null);
+            document.getElementById(editorId).focus();
+        }
+
+        function populatePackageCheckboxes(selectedIds = [], existingDescs = []) {
+            const container = document.getElementById('booking-packages-checkboxes');
+            container.innerHTML = '';
+            packages.forEach(pkg => {
+                let isChecked = selectedIds.includes(pkg.id) ? 'checked' : '';
+                let div = document.createElement('label');
+                div.className = "flex items-start gap-2 text-xs text-slate-700 cursor-pointer p-1 hover:bg-teal-50 rounded";
+                div.innerHTML = `
+                    <input type="checkbox" name="pkg-checkbox" value="${pkg.id}" ${isChecked} onchange="updateDynamicEditors()" class="mt-0.5 rounded text-teal-600 focus:ring-teal-500">
+                    <div><strong>${pkg.name}</strong> <span class="text-teal-800 font-medium">(₹${pkg.adultCost}/adult)</span></div>
+                `;
+                container.appendChild(div);
+            });
+            updateDynamicEditors(selectedIds, existingDescs);
+        }
+
+        function updateDynamicEditors(selectedIds = null, existingDescs = []) {
+            const editorsContainer = document.getElementById('dynamic-editors-container');
+            let currentContents = {};
+            document.querySelectorAll('.trip-desc-editor').forEach(ed => {
+                currentContents[ed.getAttribute('data-pkg-id')] = ed.innerHTML;
+            });
+
+            editorsContainer.innerHTML = '';
+            let checkboxes = document.querySelectorAll('input[name="pkg-checkbox"]:checked');
+            if(checkboxes.length > 0) {
+                let firstPkg = packages.find(p => p.id === checkboxes[0].value);
+                if(firstPkg && document.getElementById('per-adult-cost').value == 0) {
+                    document.getElementById('per-adult-cost').value = firstPkg.adultCost;
+                    document.getElementById('per-child-cost').value = firstPkg.childCost;
+                    calculateTotal();
+                }
+
+                checkboxes.forEach((cb) => {
+                    let pkg = packages.find(p => p.id === cb.value);
+                    if(!pkg) return;
+
+                    let defaultDesc = pkg.description || "";
+                    if(selectedIds && selectedIds.includes(pkg.id)) {
+                        let idx = selectedIds.indexOf(pkg.id);
+                        if(existingDescs[idx]) defaultDesc = existingDescs[idx];
+                    }
+                    if(currentContents[pkg.id]) {
+                        defaultDesc = currentContents[pkg.id];
+                    }
+
+                    let wrapper = document.createElement('div');
+                    wrapper.className = "bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2";
+                    wrapper.innerHTML = `
+                        <label class="block text-xs font-bold text-teal-900 uppercase tracking-wider"><i class="fa-solid fa-pen-to-square mr-1"></i> Edit Description for: ${pkg.name}</label>
+                        <div class="flex flex-wrap gap-1 bg-slate-200 p-1.5 rounded-t-lg text-slate-700">
+                            <button type="button" onclick="formatText('bold', 'editor-${pkg.id}')" title="Bold" class="p-1 hover:bg-slate-300 rounded text-xs"><i class="fa-solid fa-bold w-3"></i></button>
+                            <button type="button" onclick="formatText('italic', 'editor-${pkg.id}')" title="Italic" class="p-1 hover:bg-slate-300 rounded text-xs"><i class="fa-solid fa-italic w-3"></i></button>
+                            <span class="w-px bg-slate-300 mx-1"></span>
+                            <button type="button" onclick="formatText('insertUnorderedList', 'editor-${pkg.id}')" title="Bullet List" class="p-1 hover:bg-slate-300 rounded text-xs"><i class="fa-solid fa-list-ul w-3"></i></button>
+                            <button type="button" onclick="formatText('insertOrderedList', 'editor-${pkg.id}')" title="Numbered List" class="p-1 hover:bg-slate-300 rounded text-xs"><i class="fa-solid fa-list-ol w-3"></i></button>
+                        </div>
+                        <div id="editor-${pkg.id}" data-pkg-id="${pkg.id}" contenteditable="true" class="trip-desc-editor w-full bg-white border border-slate-300 rounded-b-lg p-3 min-h-[100px] max-h-[200px] overflow-y-auto text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none editor-content">${defaultDesc}</div>
+                    `;
+                    editorsContainer.appendChild(wrapper);
+                });
+            }
+        }
+
+        function renderPackagesGrid() {
+            const grid = document.getElementById('packages-grid');
+            grid.innerHTML = '';
+            packages.forEach(pkg => {
+                let card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base mb-2">${pkg.name}</h3>
+                        <div class="flex gap-4 text-xs font-semibold text-teal-800 bg-teal-50 p-2 rounded-lg mb-3">
+                            <span>Adult: ₹${pkg.adultCost}</span>
+                            <span>Child: ₹${pkg.childCost}</span>
+                        </div>
+                        <div class="text-xs text-slate-600 line-clamp-4 bg-slate-50 p-3 rounded-lg mb-4 editor-content">${pkg.description}</div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                        <button onclick="editPackage('${pkg.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium transition"><i class="fa-solid fa-pen mr-1"></i> Edit</button>
+                        <button onclick="deletePackage('${pkg.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-medium transition"><i class="fa-solid fa-trash mr-1"></i> Delete</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openPackageModal(pkgId = null) {
+            document.getElementById('package-modal').classList.remove('hidden');
+            if(pkgId) {
+                document.getElementById('pkg-modal-title').innerText = "Edit Goa Package";
+                let pkg = packages.find(p => p.id === pkgId);
+                document.getElementById('edit-pkg-id').value = pkg.id;
+                document.getElementById('modal-pkg-name').value = pkg.name;
+                document.getElementById('modal-pkg-adult-cost').value = pkg.adultCost;
+                document.getElementById('modal-pkg-child-cost').value = pkg.childCost;
+                document.getElementById('modal-pkg-desc-editor').innerHTML = pkg.description;
+            } else {
+                document.getElementById('pkg-modal-title').innerText = "Add New Goa Package";
+                document.getElementById('package-form').reset();
+                document.getElementById('edit-pkg-id').value = "";
+                document.getElementById('modal-pkg-desc-editor').innerHTML = "";
+            }
+        }
+
+        function closePackageModal() { document.getElementById('package-modal').classList.add('hidden'); }
+
+        function savePackage(e) {
+            e.preventDefault();
+            let id = document.getElementById('edit-pkg-id').value;
+            let name = document.getElementById('modal-pkg-name').value;
+            let adultCost = parseFloat(document.getElementById('modal-pkg-adult-cost').value) || 0;
+            let childCost = parseFloat(document.getElementById('modal-pkg-child-cost').value) || 0;
+            let description = document.getElementById('modal-pkg-desc-editor').innerHTML;
+
+            if(id) {
+                let pkg = packages.find(p => p.id === id);
+                pkg.name = name;
+                pkg.adultCost = adultCost;
+                pkg.childCost = childCost;
+                pkg.description = description;
+            } else {
+                let newPkg = { id: "pkg-" + Date.now(), name, adultCost, childCost, description };
+                packages.push(newPkg);
+            }
+
+            localStorage.setItem('ste_packages', JSON.stringify(packages));
+            populatePackageCheckboxes();
+            renderPackagesGrid();
+            closePackageModal();
+        }
+
+        function editPackage(id) { openPackageModal(id); }
+
+        function deletePackage(id) {
+            if(confirm("Are you sure you want to delete this package?")) {
+                packages = packages.filter(p => p.id !== id);
+                localStorage.setItem('ste_packages', JSON.stringify(packages));
+                populatePackageCheckboxes();
+                renderPackagesGrid();
+            }
+        }
+
+        function calculateTotal() {
+            let adults = parseInt(document.getElementById('no-adults').value) || 0;
+            let child = parseInt(document.getElementById('no-child').value) || 0;
+            let adultCost = parseFloat(document.getElementById('per-adult-cost').value) || 0;
+            let childCost = parseFloat(document.getElementById('per-child-cost').value) || 0;
+
+            let total = (adults * adultCost) + (child * childCost);
+            document.getElementById('total-payment').value = total;
+            calculateBalance();
+        }
+
+        function calculateBalance() {
+            let total = parseFloat(document.getElementById('total-payment').value) || 0;
+            let advance = parseFloat(document.getElementById('advance-paid').value) || 0;
+            let balancePaid = parseFloat(document.getElementById('balance-paid').value) || 0;
+            let balance = total - advance - balancePaid;
+            document.getElementById('balance-amount').value = balance >= 0 ? balance : 0;
+        }
+
+        function saveBooking(e) {
+            e.preventDefault();
+            let editId = document.getElementById('edit-booking-id').value;
+            let checkedBoxes = document.querySelectorAll('input[name="pkg-checkbox"]:checked');
+            
+            if(checkedBoxes.length === 0) {
+                alert("Please select at least one trip/package!");
+                return;
+            }
+
+            let packageIds = [];
+            let packageNames = [];
+            let descriptions = [];
+
+            checkedBoxes.forEach(cb => {
+                let pkgId = cb.value;
+                let pkg = packages.find(p => p.id === pkgId);
+                if(pkg) {
+                    packageIds.push(pkg.id);
+                    packageNames.push(pkg.name);
+                    let editor = document.getElementById(`editor-${pkg.id}`);
+                    descriptions.push(editor ? editor.innerHTML : pkg.description);
+                }
+            });
+
+            let bookingData = {
+                id: editId ? editId : "STE-" + new Date().getFullYear() + "-" + Math.floor(1000 + Math.random() * 9000),
+                packageIds,
+                packageNames,
+                descriptions,
+                customerName: document.getElementById('cust-name').value,
+                mobile: document.getElementById('cust-mobile').value,
+                handlingStaff: document.getElementById('handling-staff').value,
+                hotelName: document.getElementById('hotel-name').value,
+                mealPlan: document.getElementById('meal-plan').value,
+                meetingPoint: document.getElementById('meeting-point').value,
+                tripDate: document.getElementById('trip-date').value,
+                checkoutDate: document.getElementById('checkout-date').value,
+                adults: parseInt(document.getElementById('no-adults').value) || 0,
+                child: parseInt(document.getElementById('no-child').value) || 0,
+                adultUnitCost: parseFloat(document.getElementById('per-adult-cost').value) || 0,
+                childUnitCost: parseFloat(document.getElementById('per-child-cost').value) || 0,
+                totalPayment: parseFloat(document.getElementById('total-payment').value) || 0,
+                advancePaid: parseFloat(document.getElementById('advance-paid').value) || 0,
+                balancePaid: parseFloat(document.getElementById('balance-paid').value) || 0,
+                balanceAmount: parseFloat(document.getElementById('balance-amount').value) || 0,
+                createdAt: new Date().toISOString().split('T')[0]
+            };
+
+            if(editId) {
+                let index = bookings.findIndex(b => b.id === editId);
+                if(index !== -1) bookings[index] = bookingData;
+            } else {
+                bookings.unshift(bookingData);
+            }
+
+            localStorage.setItem('ste_bookings', JSON.stringify(bookings));
+            alert("Booking saved successfully!");
+            openInvoiceModal(bookingData.id);
+            resetBookingForm();
+            renderDashboard();
+            renderManageBookings();
+        }
+
+        function resetBookingForm() {
+            document.getElementById('booking-form').reset();
+            document.getElementById('edit-booking-id').value = "";
+            document.getElementById('form-mode-title').innerText = "Create New Goa Tour Booking";
+            document.getElementById('no-adults').value = 0;
+            document.getElementById('no-child').value = 0;
+            document.getElementById('total-payment').value = 0;
+            document.getElementById('balance-amount').value = 0;
+            populatePackageCheckboxes();
+        }
+
+        function renderDashboard() {
+            document.getElementById('stat-total-bookings').innerText = bookings.length;
+            let totalRev = bookings.reduce((sum, b) => sum + b.totalPayment, 0);
+            let totalAdv = bookings.reduce((sum, b) => sum + b.advancePaid, 0);
+            let totalBal = bookings.reduce((sum, b) => sum + b.balanceAmount, 0);
+
+            document.getElementById('stat-total-revenue').innerText = "₹" + totalRev.toLocaleString('en-IN');
+            document.getElementById('stat-total-advance').innerText = "₹" + totalAdv.toLocaleString('en-IN');
+            document.getElementById('stat-total-balance').innerText = "₹" + totalBal.toLocaleString('en-IN');
+
+            let tbody = document.getElementById('recent-bookings-table');
+            tbody.innerHTML = '';
+            bookings.slice(0, 5).forEach(b => {
+                let tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-teal-800">${b.id}</td>
+                    <td class="p-3 font-medium text-slate-800">${b.customerName || 'N/A'}</td>
+                    <td class="p-3 text-slate-600 truncate max-w-xs">${b.packageNames ? b.packageNames.join(', ') : 'N/A'}</td>
+                    <td class="p-3 text-slate-600">${b.tripDate || 'N/A'}</td>
+                    <td class="p-3 font-semibold text-slate-800">₹${b.totalPayment.toLocaleString('en-IN')}</td>
+                    <td class="p-3 font-semibold text-rose-600">₹${b.balanceAmount.toLocaleString('en-IN')}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button onclick="openInvoiceModal('${b.id}')" title="View Invoice" class="text-teal-700 hover:text-teal-900"><i class="fa-solid fa-file-invoice"></i></button>
+                        <button onclick="editBooking('${b.id}')" title="Edit" class="text-amber-600 hover:text-amber-800"><i class="fa-solid fa-pen"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderManageBookings() {
+            const tbody = document.getElementById('all-bookings-table');
+            tbody.innerHTML = '';
+            bookings.forEach(b => {
+                let tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 booking-row";
+                let pkgStr = b.packageNames ? b.packageNames.join(' ') : '';
+                tr.setAttribute('data-search', ((b.customerName || '') + " " + (b.mobile || '') + " " + b.id + " " + pkgStr).toLowerCase());
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-teal-800">${b.id}</td>
+                    <td class="p-3 font-medium text-slate-800">${b.customerName || 'N/A'}</td>
+                    <td class="p-3 text-slate-600">${b.mobile || 'N/A'}</td>
+                    <td class="p-3 text-slate-600 max-w-xs truncate">${pkgStr}</td>
+                    <td class="p-3 text-slate-600">${b.tripDate || 'N/A'}</td>
+                    <td class="p-3 font-semibold text-slate-800">₹${b.totalPayment.toLocaleString('en-IN')}</td>
+                    <td class="p-3 font-semibold text-rose-600">₹${b.balanceAmount.toLocaleString('en-IN')}</td>
+                    <td class="p-3 text-center space-x-3">
+                        <button onclick="openInvoiceModal('${b.id}')" title="View Invoice & Print" class="text-teal-700 hover:text-teal-900 bg-teal-50 p-1.5 rounded"><i class="fa-solid fa-print"></i></button>
+                        <button onclick="editBooking('${b.id}')" title="Edit Booking" class="text-amber-600 hover:text-amber-800 bg-amber-50 p-1.5 rounded"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteBooking('${b.id}')" title="Delete Booking" class="text-rose-600 hover:text-rose-800 bg-rose-50 p-1.5 rounded"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterBookings() {
+            let query = document.getElementById('search-booking-input').value.toLowerCase();
+            document.querySelectorAll('.booking-row').forEach(row => {
+                let text = row.getAttribute('data-search');
+                row.style.display = text.includes(query) ? "" : "none";
+            });
+        }
+
+        function editBooking(id) {
+            let b = bookings.find(item => item.id === id);
+            if(!b) return;
+
+            switchTab('booking');
+            document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+                if(idx === 2) {
+                    btn.classList.add('bg-teal-700', 'text-white');
+                    btn.classList.remove('text-teal-200', 'hover:bg-teal-800', 'hover:text-white');
+                } else {
+                    btn.classList.remove('bg-teal-700', 'text-white');
+                    btn.classList.add('text-teal-200', 'hover:bg-teal-800', 'hover:text-white');
+                }
+            });
+
+            document.getElementById('form-mode-title').innerText = "Edit Booking: " + b.id;
+            document.getElementById('edit-booking-id').value = b.id;
+            
+            let pIds = b.packageIds || [];
+            let pDescs = b.descriptions || [];
+            populatePackageCheckboxes(pIds, pDescs);
+
+            document.getElementById('cust-name').value = b.customerName || "";
+            document.getElementById('cust-mobile').value = b.mobile || "";
+            document.getElementById('handling-staff').value = b.handlingStaff || "";
+            document.getElementById('hotel-name').value = b.hotelName || "";
+            document.getElementById('meal-plan').value = b.mealPlan || "";
+            document.getElementById('meeting-point').value = b.meetingPoint || "";
+            document.getElementById('trip-date').value = b.tripDate || "";
+            document.getElementById('checkout-date').value = b.checkoutDate || "";
+            document.getElementById('no-adults').value = b.adults || 0;
+            document.getElementById('no-child').value = b.child || 0;
+            document.getElementById('per-adult-cost').value = b.adultUnitCost || 0;
+            document.getElementById('per-child-cost').value = b.childUnitCost || 0;
+            document.getElementById('total-payment').value = b.totalPayment || 0;
+            document.getElementById('advance-paid').value = b.advancePaid || 0;
+            document.getElementById('balance-paid').value = b.balancePaid || 0;
+            document.getElementById('balance-amount').value = b.balanceAmount || 0;
+        }
+
+        function deleteBooking(id) {
+            if(confirm("Are you sure you want to delete booking " + id + "?")) {
+                bookings = bookings.filter(b => b.id !== id);
+                localStorage.setItem('ste_bookings', JSON.stringify(bookings));
+                renderDashboard();
+                renderManageBookings();
+            }
+        }
+
+        let currentInvoiceBooking = null;
+
+        function openInvoiceModal(id) {
+            let b = bookings.find(item => item.id === id);
+            if(!b) return;
+            currentInvoiceBooking = b;
+
+            document.getElementById('inv-company-name').innerText = companySettings.name;
+            document.getElementById('inv-company-tagline').innerText = companySettings.tagline;
+            document.getElementById('inv-company-address').innerText = companySettings.address;
+            document.getElementById('inv-footer-company').innerText = companySettings.name;
+            document.getElementById('inv-footer-phone').innerText = companySettings.phone;
+
+            const logoBox = document.getElementById('inv-logo-box');
+            if(companySettings.logo) {
+                logoBox.innerHTML = `<img src="${companySettings.logo}" class="w-full h-full object-cover">`;
+            } else {
+                logoBox.innerHTML = `<i class="fa-solid fa-umbrella-beach text-sm"></i>`;
+            }
+
+            document.getElementById('inv-id').innerText = b.id;
+            document.getElementById('inv-date').innerText = b.createdAt;
+
+            let hasCustomer = false;
+            if(b.customerName) { document.getElementById('inv-row-name').style.display = ""; document.getElementById('inv-cust-name').innerText = b.customerName; hasCustomer = true; } else { document.getElementById('inv-row-name').style.display = "none"; }
+            if(b.mobile) { document.getElementById('inv-row-mobile').style.display = ""; document.getElementById('inv-cust-mobile').innerText = b.mobile; hasCustomer = true; } else { document.getElementById('inv-row-mobile').style.display = "none"; }
+            
+            if(b.handlingStaff) {
+                document.getElementById('inv-row-staff').style.display = "";
+                let empObj = employees.find(e => e.name === b.handlingStaff);
+                let staffText = b.handlingStaff;
+                if(empObj && empObj.phone) {
+                    staffText += ` (${empObj.phone})`;
+                }
+                document.getElementById('inv-handling-staff').innerText = staffText;
+                hasCustomer = true;
+            } else {
+                document.getElementById('inv-row-staff').style.display = "none";
+            }
+            document.getElementById('inv-customer-box').style.display = hasCustomer ? "" : "none";
+
+            let hasTrip = false;
+            if(b.hotelName) { document.getElementById('inv-row-hotel').style.display = ""; document.getElementById('inv-hotel').innerText = b.hotelName; hasTrip = true; } else { document.getElementById('inv-row-hotel').style.display = "none"; }
+            if(b.mealPlan) { document.getElementById('inv-row-meal').style.display = ""; document.getElementById('inv-meal').innerText = b.mealPlan; hasTrip = true; } else { document.getElementById('inv-row-meal').style.display = "none"; }
+            if(b.tripDate || b.checkoutDate) { document.getElementById('inv-row-dates').style.display = ""; document.getElementById('inv-trip-dates').innerText = `${b.tripDate || ''} ${b.tripDate && b.checkoutDate ? 'to' : ''} ${b.checkoutDate || ''}`; hasTrip = true; } else { document.getElementById('inv-row-dates').style.display = "none"; }
+            if(b.meetingPoint) { document.getElementById('inv-row-meeting').style.display = ""; document.getElementById('inv-meeting').innerText = b.meetingPoint; hasTrip = true; } else { document.getElementById('inv-row-meeting').style.display = "none"; }
+            document.getElementById('inv-trip-box').style.display = hasTrip ? "" : "none";
+
+            if(!hasCustomer && !hasTrip) {
+                document.getElementById('inv-meta-grid').style.display = "none";
+            } else {
+                document.getElementById('inv-meta-grid').style.display = "grid";
+            }
+
+            let pkgContainer = document.getElementById('inv-packages-container');
+            pkgContainer.innerHTML = '';
+            let pNames = b.packageNames || [];
+            let pDescs = b.descriptions || [];
+
+            if(pNames.length > 0) {
+                document.getElementById('inv-package-section').style.display = "";
+                pNames.forEach((name, idx) => {
+                    let desc = pDescs[idx] || '';
+                    let itemDiv = document.createElement('div');
+                    itemDiv.className = "mb-2 pb-2 border-b border-slate-100 last:border-0";
+                    itemDiv.innerHTML = `
+                        <h4 class="font-bold text-slate-800 text-[10px] mb-0.5 text-teal-900"><i class="fa-solid fa-map-location-dot mr-1"></i>${name}</h4>
+                        <div class="text-[9px] text-slate-600 bg-slate-50/50 p-1.5 rounded border border-slate-200 editor-content leading-tight">${desc}</div>
+                    `;
+                    pkgContainer.appendChild(itemDiv);
+                });
+            } else {
+                document.getElementById('inv-package-section').style.display = "none";
+            }
+
+            let pricingTbody = document.getElementById('inv-pricing-tbody');
+            pricingTbody.innerHTML = '';
+            let hasPricingRows = false;
+
+            if(b.adults > 0) {
+                hasPricingRows = true;
+                pricingTbody.innerHTML += `
+                    <tr>
+                        <td class="p-0.5 font-medium">Adults</td>
+                        <td class="p-0.5 text-center">${b.adults}</td>
+                        <td class="p-0.5 text-right">₹${b.adultUnitCost.toLocaleString('en-IN')}</td>
+                        <td class="p-0.5 text-right font-medium">₹${(b.adults * b.adultUnitCost).toLocaleString('en-IN')}</td>
+                    </tr>
+                `;
+            }
+            if(b.child > 0) {
+                hasPricingRows = true;
+                pricingTbody.innerHTML += `
+                    <tr>
+                        <td class="p-0.5 font-medium">Children</td>
+                        <td class="p-0.5 text-center">${b.child}</td>
+                        <td class="p-0.5 text-right">₹${b.childUnitCost.toLocaleString('en-IN')}</td>
+                        <td class="p-0.5 text-right font-medium">₹${(b.child * b.childUnitCost).toLocaleString('en-IN')}</td>
+                    </tr>
+                `;
+            }
+
+            if(hasPricingRows) {
+                document.getElementById('inv-pricing-section').style.display = "";
+            } else {
+                document.getElementById('inv-pricing-section').style.display = "none";
+            }
+
+            document.getElementById('inv-total-payment').innerText = "₹" + b.totalPayment.toLocaleString('en-IN');
+            document.getElementById('inv-advance-paid').innerText = "₹" + b.advancePaid.toLocaleString('en-IN');
+            document.getElementById('inv-balance-paid').innerText = "₹" + b.balancePaid.toLocaleString('en-IN');
+            document.getElementById('inv-balance-amount').innerText = "₹" + b.balanceAmount.toLocaleString('en-IN');
+
+            if(companySettings.terms) {
+                document.getElementById('inv-terms-section').style.display = "";
+                document.getElementById('inv-terms-text').innerText = companySettings.terms;
+            } else {
+                document.getElementById('inv-terms-section').style.display = "none";
+            }
+
+            const stampBox = document.getElementById('inv-stamp-box');
+            if(companySettings.stamp) {
+                stampBox.classList.remove('hidden');
+                document.getElementById('inv-stamp-img').src = companySettings.stamp;
+            } else {
+                stampBox.classList.add('hidden');
+            }
+
+            document.getElementById('invoice-modal').classList.remove('hidden');
+        }
+
+        function closeInvoiceModal() { document.getElementById('invoice-modal').classList.add('hidden'); }
+
+        function printInvoice() {
+            if(currentInvoiceBooking && currentInvoiceBooking.customerName) {
+                let cleanName = currentInvoiceBooking.customerName.replace(/[^a-zA-Z0-9]/g, '_');
+                document.title = `Invoice_${cleanName}`;
+            } else {
+                document.title = `Booking_Invoice`;
+            }
+            window.print();
+        }
+
+        function openWhatsAppModal() {
+            if(!currentInvoiceBooking) return;
+            let b = currentInvoiceBooking;
+
+            let pNames = b.packageNames || [];
+
+            let staffText = b.handlingStaff || "N/A";
+            let empObj = employees.find(e => e.name === b.handlingStaff);
+            if(empObj && empObj.phone) staffText += ` (${empObj.phone})`;
+
+            let text = `🌴 *${companySettings.name.toUpperCase()}* 🌴\n`;
+            text += `*GOA TOUR BOOKING SUMMARY*\n\n`;
+            text += `🆔 *Booking ID:* ${b.id}\n`;
+            if(b.customerName) text += `👤 *Customer Name:* ${b.customerName}\n`;
+            if(b.mobile) text += `📞 *Mobile:* ${b.mobile}\n`;
+            if(b.handlingStaff) text += `👨‍💼 *Handling Person:* ${staffText}\n`;
+            if(b.hotelName) text += `🏨 *Hotel:* ${b.hotelName}\n`;
+            if(b.mealPlan) text += `🍽️ *Meal Plan:* ${b.mealPlan}\n`;
+            if(b.tripDate || b.checkoutDate) text += `📅 *Trip Dates:* ${b.tripDate || ''} to ${b.checkoutDate || ''}\n`;
+            if(b.meetingPoint) text += `📍 *Pickup Point:* ${b.meetingPoint}\n`;
+            
+            if(pNames.length > 0) {
+                text += `\n📦 *Selected Trips / Packages:*\n`;
+                pNames.forEach((name) => {
+                    text += `• ${name}\n`;
+                });
+            }
+
+            if(b.adults > 0 || b.child > 0) text += `\n👥 *Adults:* ${b.adults} | *Children:* ${b.child}\n`;
+            
+            text += `\n💰 *PAYMENT DETAILS:*\n`;
+            text += `• Total Amount: ₹${b.totalPayment.toLocaleString('en-IN')}\n`;
+            text += `• Advance Paid: ₹${b.advancePaid.toLocaleString('en-IN')}\n`;
+            text += `• Balance Paid: ₹${b.balancePaid.toLocaleString('en-IN')}\n`;
+            text += `• Balance Amount: ₹${b.balanceAmount.toLocaleString('en-IN')}\n`;
+            if(companySettings.terms) {
+                text += `\n📜 *Terms & Conditions:*\n${companySettings.terms}\n`;
+            }
+            text += `\n🙏 Thank you for choosing ${companySettings.name}!\n`;
+            text += `Helpline: ${companySettings.phone}`;
+
+            document.getElementById('whatsapp-text-area').value = text;
+            document.getElementById('whatsapp-modal').classList.add('hidden');
+            document.getElementById('whatsapp-modal').classList.remove('hidden');
+        }
+
+        function closeWhatsAppModal() { document.getElementById('whatsapp-modal').classList.add('hidden'); }
+
+        function copyWhatsAppText() {
+            const textarea = document.getElementById('whatsapp-text-area');
+            textarea.select();
+            document.execCommand('copy');
+            alert("Booking details copied to clipboard!");
+            let whatsappUrl = `https://api.whatsapp.com/send?text=` + encodeURIComponent(textarea.value);
+            window.open(whatsappUrl, '_blank');
+        }
+    </script>
+</body>
+</html>
